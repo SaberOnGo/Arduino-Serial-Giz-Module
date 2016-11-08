@@ -60,9 +60,11 @@
  ATCMD_Init();
  
  In the loop call the following task forever:
+  
  void loop(void)
  {
-    SerialDrv_Task(ATUART_RxIntServer);   //(if GIZ msg send & receive by UART, not necessary, I2C, SPI is OK)
+    
+    SerialDrv_Task(ATUART_RxIntServer);   // (if GIZ msg send & receive by UART, not necessary, I2C, SPI is OK)
     COS_TimerTask();                      // to check soft timer 
  }
  
@@ -72,4 +74,5 @@
  #  #define  USE_ESP8266    1
 
  #  the other side use USE_ESP8266 MARCO as wifi device to tx/rx msg
- #  #define GIZ_PLATFORM    USE_ARDUINO  
+ #  #define GIZ_PLATFORM    USE_ARDUINO
+   
