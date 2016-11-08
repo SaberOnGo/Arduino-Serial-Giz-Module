@@ -68,7 +68,8 @@
  
  
  Giz module need two physical device: Wifi Module and the Device(MCU)
-#define  USE_ARDUINO    0
-#define  USE_ESP8266    1
+ #define  USE_ARDUINO    0
+ #define  USE_ESP8266    1
 
-#define GIZ_PLATFORM    USE_ARDUINO  // the other side use USE_ESP8266 MARCO as wifi device to tx/rx msg
+ // the other side use USE_ESP8266 MARCO as wifi device to tx/rx msg
+ #define GIZ_PLATFORM    USE_ARDUINO  
