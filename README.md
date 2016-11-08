@@ -1,32 +1,32 @@
-# Arduino-Serial-Giz-Module
+ï»¿# Arduino-Serial-Giz-Module
 
 
-Ê¹ÓÃ Arduino IDE 1.0.5 ±àÒëÊ±
-Ğè½«¿â "SoftwareSerial" ·ÅÔÚ ../arduino-1.0.5-r2-windows/arduino-1.0.5-r2/libraries  ÏÂ
-       "OneWire" ·ÅÔÚ  ../arduino-1.0.5-r2-windows/arduino-1.0.5-r2/libraries   ÏÂ
+ä½¿ç”¨ Arduino IDE 1.0.5 ç¼–è¯‘æ—¶
+éœ€å°†åº“ "SoftwareSerial" æ”¾åœ¨ ../arduino-1.0.5-r2-windows/arduino-1.0.5-r2/libraries  ä¸‹
+       "OneWire" æ”¾åœ¨  ../arduino-1.0.5-r2-windows/arduino-1.0.5-r2/libraries   ä¸‹
   
- GizÄ£¿éÖ÷ÒªÎÄ¼ş: AtCmd_Drv.cpp, GizCmdTest.cpp ¼°Í·ÎÄ¼ş
- ÒÆÖ²GizÄ£¿éÊ±ĞèÊµÏÖAPI:
- os_printf:    ´®¿Ú´òÓ¡µ÷ÊÔÊä³ö, ²¨ÌØÂÊ 4800
- GIZ_UartSend(str): Ó²¼ş´®¿ÚÊä³ö GizÃüÁî
+ Gizæ¨¡å—ä¸»è¦æ–‡ä»¶: AtCmd_Drv.cpp, GizCmdTest.cpp åŠå¤´æ–‡ä»¶
+ ç§»æ¤Gizæ¨¡å—æ—¶éœ€å®ç°API:
+ os_printf:    ä¸²å£æ‰“å°è°ƒè¯•è¾“å‡º, æ³¢ç‰¹ç‡ 4800
+ GIZ_UartSend(str): ç¡¬ä»¶ä¸²å£è¾“å‡º Gizå‘½ä»¤
  
- Èí¼ş¶¨Ê±Æ÷½Ó¿Ú(¼æÈİESP8266µÄÈí¼ş¶¨Ê±Æ÷API):
- os_timer_disarm(timer)   Í£Ö¹¶¨Ê±Æ÷
- os_timer_setfn(timer, func, param): ÉèÖÃ¶¨Ê±Æ÷»Øµ÷º¯Êı
- os_timer_arm(timer, ms, is_repeat): ÉèÖÃ¶¨Ê±Ê±¼ä,µ¥Î»ms
+ è½¯ä»¶å®šæ—¶å™¨æ¥å£(å…¼å®¹ESP8266çš„è½¯ä»¶å®šæ—¶å™¨API):
+ os_timer_disarm(timer)   åœæ­¢å®šæ—¶å™¨
+ os_timer_setfn(timer, func, param): è®¾ç½®å®šæ—¶å™¨å›è°ƒå‡½æ•°
+ os_timer_arm(timer, ms, is_repeat): è®¾ç½®å®šæ—¶æ—¶é—´,å•ä½ms
   
- ÏµÍ³½Ó¿Ú:
-  Sys_GetRunTime(): »ñÈ¡ÏµÍ³ÔËĞĞÖÁ½ñµÄÊ±¼ä, µ¥Î»ms
+ ç³»ç»Ÿæ¥å£:
+  Sys_GetRunTime(): è·å–ç³»ç»Ÿè¿è¡Œè‡³ä»Šçš„æ—¶é—´, å•ä½ms
   
   
-  Ê¹ÓÃ·½·¨:
-  1  ¶¨Òåºê:  #define GIZ_PLATFORM    USE_ARDUINO  // ×÷ÎªÉè±¸¶Ë, ÓëWIFI Ä£¿éÁ¬½Ó
-  2  ½«Arduino NanoµÄRX, TX ½ÓWIFI Ä£¿é(±ÈÈçESP8266)µÄTX, RX¶Ë, Á½Õß²¨ÌØÂÊĞèÒªÒ»ÖÂ(default: 115200)
-  3  ½«Èí¼ş´®¿Ú¹Ü½Å D10(RX), D11(TX) Í¨¹ıUSB ×ª´®¿ÚÄ£¿éÁ¬½ÓµçÄÔ, ²¨ÌØÂÊ4800, ×÷Îªµ÷ÊÔĞÅÏ¢Êä³ö
+  ä½¿ç”¨æ–¹æ³•:
+  1  å®šä¹‰å®:  #define GIZ_PLATFORM    USE_ARDUINO  // ä½œä¸ºè®¾å¤‡ç«¯, ä¸WIFI æ¨¡å—è¿æ¥
+  2  å°†Arduino Nanoçš„RX, TX æ¥WIFI æ¨¡å—(æ¯”å¦‚ESP8266)çš„TX, RXç«¯, ä¸¤è€…æ³¢ç‰¹ç‡éœ€è¦ä¸€è‡´(default: 115200)
+  3  å°†è½¯ä»¶ä¸²å£ç®¡è„š D10(RX), D11(TX) é€šè¿‡USB è½¬ä¸²å£æ¨¡å—è¿æ¥ç”µè„‘, æ³¢ç‰¹ç‡4800, ä½œä¸ºè°ƒè¯•ä¿¡æ¯è¾“å‡º
   
-  µ÷ÊÔ·½·¨: 
-  1  ½« Arduino NanoµÄRX ½ÓTX
-  2  ½«Èí¼ş´®¿Ú¹Ü½Å D10(RX), D11(TX) Í¨¹ıUSB ×ª´®¿ÚÄ£¿éÁ¬½ÓµçÄÔ, ²¨ÌØÂÊ4800, ×÷Îªµ÷ÊÔĞÅÏ¢Êä³ö
+  è°ƒè¯•æ–¹æ³•: 
+  1  å°† Arduino Nanoçš„RX æ¥TX
+  2  å°†è½¯ä»¶ä¸²å£ç®¡è„š D10(RX), D11(TX) é€šè¿‡USB è½¬ä¸²å£æ¨¡å—è¿æ¥ç”µè„‘, æ³¢ç‰¹ç‡4800, ä½œä¸ºè°ƒè¯•ä¿¡æ¯è¾“å‡º
   
   
         --CLOUD-------------------------------------------                            
