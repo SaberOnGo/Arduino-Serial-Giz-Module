@@ -28,7 +28,6 @@
 
 
 
-
 #define GIZ_VERSION_STRING_LEN    8     
 #define GIZ_MAX_STRING_LEN        32
 #define GIZ_PRODUCT_KEY_STR_LEN   GIZ_MAX_STRING_LEN
@@ -62,6 +61,21 @@ typedef enum
    
    CMD_Reserved = 0xFF,
 }E_CMD_VAL;
+
+// wifi 与 MCU 还是APP 交互
+typedef enum
+{
+   WIFI_AND_MCU_FLAGS  = 0x0000,
+   WIFI_AND_APP_FLAGS  = 0x0001,
+}E_RemoteFlags;
+
+// action 字段定义
+typedef enum
+{
+    E_Action_None  = 0x10,  //无错误时填此项, 注意 0x10 以下不能随便使用
+    E_Action_Timeout,    // 等待响应超时
+    E_Action_GetFailed,  // 获取数据失败
+}E_CMD_ACTION;
 
 #pragma pack (1)
 
@@ -144,6 +158,8 @@ typedef struct
    uint8_t action;
    T_MSG_TAILER tailer;
 }T_ReadDeviceCurStatus_Req;   
+
+#if 0
 typedef struct
 {
     uint32_t hour;
@@ -156,6 +172,28 @@ typedef struct
 	uint32_t humiduty;
 	uint32_t batCapacity;  // battery capacity
 }T_DEVICE_STATUS;  // 31 B
+#else
+typedef struct
+{
+    uint32_t hour;
+	uint32_t min;
+	uint32_t sec;
+	uint8_t  sys_status;  // 系统状态
+	uint16_t pm25;        // 0 - 9999, pm25 浓度
+	uint32_t forma;       // 甲醛浓度
+	uint32_t temperatue;  // 温度
+	uint32_t humiduty;    // 湿度, %
+    uint32_t batCapacity;  // battery capacity
+    
+	uint32_t airPressure;   // 气压
+	uint32_t windSpeed;     // 风速
+	uint32_t windDir;        // 风向
+	uint32_t rainfall;       // 降雨量
+	uint32_t lightIntensity;  // 光照强度
+	uint32_t ultraviolet;     // 紫外线强度	
+}T_DEVICE_STATUS;  // 传感器集合
+#endif
+
 typedef struct
 {
    uint32_t hour;
@@ -201,7 +239,8 @@ void FLASH_SAVE ATUART_RxIntServer(uint8_t *data, int32_t len);
 uint8_t FLASH_SAVE CMDFN_SendConfigMode_Req(E_CONFIG_MODE configMode);
 uint8_t FLASH_SAVE CMDFN_SendRestartWifi_Req(void);
 uint8_t FLASH_SAVE  CMDFN_SendWifiStatusChangeNotify_Req(uint16_t wifi_status);
-uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(void);
+uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(E_RemoteFlags flags);
+
 uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatusReport(void);
 uint8_t FLASH_SAVE CMDFN_SendDeviceTimeSet_Req(void);
 

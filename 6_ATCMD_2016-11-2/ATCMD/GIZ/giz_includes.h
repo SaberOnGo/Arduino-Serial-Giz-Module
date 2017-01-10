@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include <stdarg.h>
+#include <stdio.h>
 #include <avr/pgmspace.h>
 #include "string.h"
 #include "GlobalDef.h"

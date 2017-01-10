@@ -22,15 +22,55 @@ static void uart_putc(void *p, char c)
   mySerial.write(c);
 }
 
+
+#if SW_PRINTF_EN
+#include <stdio.h>
+FILE __stdout;  
+
+//------------------------------------
+//函数名：fputc()
+// 参数：int ch，FILE *f
+// 返回值：int
+// 功能：重新定义stdio.h中的fputc()函数，使printf()输出到USART1
+int fputc(int ch, FILE *f)
+{
+    uart_putc(f, ch);
+    return ch;
+}
+#endif
+
+
+
 void FLASH_SAVE SerialDrv_Init(ATCMD_RxProcessFunc func)
 {
    func = func;
    mySerial.begin(4800);
    //printf_begin();
-   init_tfp_printf(NULL, uart_putc);
+   
+  #if SW_PRINTF_EN
+  os_printf("use <stdio.h> printf\r\n");
+  #else
+  init_tfp_printf(NULL, uart_putc);
+  os_printf("use tfp_printf\r\n");
+  #endif
+  
    mySerial.println("Hello, world\r\n");
-
+   
+   
    Serial.begin(115200);
+}
+
+static const char HEX_CHAR[] = {
+'0','1','2', '3',
+'4','5','6', '7',
+'8','9','A', 'B',
+'C','D','E', 'F',
+};
+
+void SerialDrv_PrintHex(char c)
+{
+	mySerial.write(HEX_CHAR[(c & 0xF0) >> 4]);
+	mySerial.write(HEX_CHAR[c & 0x0F]);
 }
 
 // send msg to wifi
@@ -44,6 +84,8 @@ void SerialDrv_Print(char *data)
 {
   mySerial.print(data);
 }
+
+
 
 // debug info output, then change another line
 void SerialDrv_Println(char *data)

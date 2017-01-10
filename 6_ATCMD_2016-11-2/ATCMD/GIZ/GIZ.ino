@@ -30,7 +30,7 @@ void setup() {
 void loop() 
 {
     SerialDrv_Task(ATUART_RxIntServer);
-    COS_TimerTask();
+    OS_TimerTask();
     //DS18B20_GetTemperature(&tempVal);
      
 }

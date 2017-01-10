@@ -5,10 +5,10 @@
 
 
 
-static T_COS_TIMER * head_handle = NULL;
+static T_OS_TIMER * head_handle = NULL;
 static uint32_t timer_tick = 0;
 	
-void COS_TimerInit(T_COS_TIMER * timer, 
+void OS_TimerInit(T_OS_TIMER * timer, 
                                      timeout_callback timeout_func, 
                                      void * param,
                                      uint32_t time,
@@ -23,14 +23,14 @@ void COS_TimerInit(T_COS_TIMER * timer,
 
 
 
-OS_RESULT COS_TimerStart(T_COS_TIMER * timer)
+OS_RESULT OS_TimerStart(T_OS_TIMER * timer)
 {
-   T_COS_TIMER * target = head_handle;
+   T_OS_TIMER * target = head_handle;
    while(target)
    {
       if(target == timer)
 	  {
-	     target->flag |= COS_TIMER_FLAG_ACTIVATED;
+	     target->flag |= OS_TIMER_FLAG_ACTIVATED;
 		 SERIAL_DEBUG("timer 0x%x existed\r\n", (long)timer);
 		 return OS_OK;
 	  }
@@ -39,41 +39,41 @@ OS_RESULT COS_TimerStart(T_COS_TIMER * timer)
    
    timer->next = head_handle;
    head_handle = timer;  // pointe to the last timer
-   timer->flag |= COS_TIMER_FLAG_ACTIVATED;
+   timer->flag |= OS_TIMER_FLAG_ACTIVATED;
    	
    TIMER_DEBUG("handle = 0x%x, flag = 0x%x\r\n", (long)head_handle, (long)timer->flag);
    
    return OS_OK;
 }
 
-void COS_TimerStop(T_COS_TIMER * timer)
+void OS_TimerStop(T_OS_TIMER * timer)
 {
-   T_COS_TIMER * cur;
+   T_OS_TIMER * cur;
    
    for(cur = head_handle; cur; cur = cur->next)
    {
       
       if(cur == timer)
       {
-         cur->flag &= ~ COS_TIMER_FLAG_ACTIVATED;
+         cur->flag &= ~ OS_TIMER_FLAG_ACTIVATED;
          TIMER_DEBUG("stop timer: 0x%x\r\n", (long)cur);
       }
    }
 }
 
-void COS_TimerCheck(void)
+void OS_TimerCheck(void)
 {
-   T_COS_TIMER *cur = NULL;
+   T_OS_TIMER *cur = NULL;
    
    for(cur = head_handle; cur; cur = cur->next)
    {
       if(Sys_GetRunTime() >= cur->timeout_tick &&
-	  	(cur->flag & COS_TIMER_FLAG_ACTIVATED))	
+	  	(cur->flag & OS_TIMER_FLAG_ACTIVATED))	
       {
 		   TIMER_DEBUG("timer tick out: %d ms\r\n", Sys_GetRunTime());
-		   if(! (cur->flag & COS_TIMER_FLAG_PERIODIC))
+		   if(! (cur->flag & OS_TIMER_FLAG_PERIODIC))
 		   {
-		       cur->flag &= ~COS_TIMER_FLAG_ACTIVATED;
+		       cur->flag &= ~OS_TIMER_FLAG_ACTIVATED;
 		   }
 		   else
 		   {
@@ -84,23 +84,23 @@ void COS_TimerCheck(void)
    }
 }
 
-void COS_TimerTickIncrease(uint32_t tick)
+void OS_TimerTickIncrease(uint32_t tick)
 {
    timer_tick++;
 }
 
-void COS_TimerTask(void)
+void OS_TimerTask(void)
 {
    if(Sys_GetRunTime() > (timer_tick + 10))  // 10 ms
    {
       timer_tick = Sys_GetRunTime();
-      COS_TimerCheck();
+      OS_TimerCheck();
    }
 }
 
 void os_timer_setfn(os_timer_t *timer, os_timer_func_t * func, void *parg)
 {
-   COS_TimerInit(timer, func, parg, 0, 0);
+   OS_TimerInit(timer, func, parg, 0, 0);
 }
 
 void os_timer_arm(os_timer_t * timer, uint32_t ms, uint8_t is_repeat)
@@ -109,9 +109,9 @@ void os_timer_arm(os_timer_t * timer, uint32_t ms, uint8_t is_repeat)
    timer->timeout_tick = Sys_GetRunTime() + ms;
    if(is_repeat)
    {
-      timer->flag |= COS_TIMER_FLAG_PERIODIC;  // timer repeat
+      timer->flag |= OS_TIMER_FLAG_PERIODIC;  // timer repeat
    }
-   COS_TimerStart(timer);
+   OS_TimerStart(timer);
 }
 
 

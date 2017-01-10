@@ -64,7 +64,7 @@ static void FLASH_SAVE DevCurStatusReportTimer_CallBack(void * param)
      os_timer_disarm(&tDevCurStatusReportTimer);
      TEST_DEBUG("report DevCurSta cb tk = %d ms\n", Sys_GetRunTime());
 	 CMDFN_SendReadDeviceCurStatusReport();
-	 os_timer_setfn(&tDevCurStatusReportTimer, (os_timer_func_t * )DevCurStatusReportTimer_CallBack, NULL);
+	 //os_timer_setfn(&tDevCurStatusReportTimer, (os_timer_func_t * )DevCurStatusReportTimer_CallBack, NULL);
 	 os_timer_arm(&tDevCurStatusReportTimer, 2000, 0);
 }
 
@@ -120,7 +120,7 @@ static os_timer_t tReadDevCurStatusReqTimer;
 static void FLASH_SAVE ReadDevCurStatusTimer_CallBack(void * param)
 {
    TEST_DEBUG("read dev cur sta cb tk = %d\n", Sys_GetRunTime());
-   CMDFN_SendReadDeviceCurStatus_Req();
+   CMDFN_SendReadDeviceCurStatus_Req(WIFI_AND_APP_FLAGS);
 }
 void FLASH_SAVE CmdTest_SendReadDevCurStatusReq_Manager(void)
 {
@@ -164,12 +164,12 @@ void FLASH_SAVE GizCmdTestInit(void)
 	#if (GIZ_PLATFORM == USE_ARDUINO)
     //CmdTest_SendConfigModeReq_Manager();
 	//CmdTest_SendRestartWifiReq_Manager();
-	CmdTest_DevCurStatusReportReq_Manager();
+	//CmdTest_DevCurStatusReportReq_Manager();
 	
 	#else  // wifi module
-	CmdTest_WifiTimingToCheckStatus_Manager();
+	//CmdTest_WifiTimingToCheckStatus_Manager();
 	CmdTest_SendReadDevCurStatusReq_Manager();
-	CmdTest_TimeSetReqTimer_Manager();
+	//CmdTest_TimeSetReqTimer_Manager();
 	#endif  
 
     #if 1

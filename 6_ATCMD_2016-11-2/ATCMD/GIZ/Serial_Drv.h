@@ -9,6 +9,7 @@
 #define SOFT_RX_PIN  10  //  D10, name on hardware board 
 #define SOFT_TX_PIN  11  // D11,
 
+#define SW_PRINTF_EN   0   //1: 使用stdio.h 中的printf;  0: 使用 tfp_printf
 
 
 #define  os_memset(src, c, len)   memset(src, c, len)
@@ -22,6 +23,7 @@ typedef void (*ATCMD_RxProcessFunc)(uint8_t *data, int32_t len);
 
 void SerialDrv_UartSend(char *data);
 void SerialDrv_Print(char *data);
+void SerialDrv_PrintHex(char c);
 void SerialDrv_Println(char *data);
 void SerialDrv_Task(ATCMD_RxProcessFunc AtCmdRxProcessFunc);
 
@@ -30,6 +32,9 @@ void FLASH_SAVE SerialDrv_SetRxCompleteBool(E_BOOL isComplete);
 
 #define at_port_print(str)   SerialDrv_UartSend((char *)str)
 
+#if SW_PRINTF_EN
+#define os_printf printf
+#else
 
 #if USE_OPTIMIZE_PRINTF
 #define os_printf(fmt, ...)  do {\
@@ -48,6 +53,8 @@ void FLASH_SAVE SerialDrv_SetRxCompleteBool(E_BOOL isComplete);
 		} while(0)
 #else
 #define os_printf	tfp_printf
+#endif
+
 #endif
 
 #if SERIAL_DEBUG_EN

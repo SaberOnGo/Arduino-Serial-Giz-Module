@@ -6,6 +6,7 @@ static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_
 {
    uint16_t checkSumLen = 0;    // all msg data except the byte of checksum
    uint16_t validLen = 0;  // valid len = header.len
+   uint16_t cmdLen = 0;    // 命令数据长度, 不包括 "\r\n"
    uint16_t i;
    uint8_t xorResult = 0;  //the checksum result
    T_MSG_HEADER *header = (T_MSG_HEADER *)data;
@@ -38,6 +39,7 @@ static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_
       }
 	  validLen = header->len;
 	  checkSumLen = validLen + MSG_PACKET_HEAD_SIZE - GIZ_CHECKSUM_SIZE; 
+      cmdLen = validLen + MSG_PACKET_HEAD_SIZE;
 
       GIZ_PRINT("pklen = %d, ckLen = %d\n", validLen, checkSumLen);
       //  check checkSumLen is valid?
@@ -48,7 +50,7 @@ static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_
 		  return APP_FAILED;
       }
 	  
-      for(i = 4; i < checkSumLen; i++)  // demodulate the left bytes
+      for(i = 4; i < cmdLen; i++)  // demodulate the left bytes
       {
          if(data[i] == GIZ_CODE_1_VAL)
          {
@@ -62,7 +64,10 @@ static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_
 		 {
 		    data[i] = 0x0A;
 		 }
+		 if(i != checkSumLen)  // 不是校验字段
+		 {
 		 xorResult += data[i];
+		 }
       }
 
 	  if(len)
@@ -129,7 +134,7 @@ static E_RESULT FLASH_SAVE GIZ_MsgModulate(void *pMsg, int16_t totalLen)
 }
 
 
-static E_RESULT FLASH_SAVE GIZ_IsCmdCorrect(uint8_t * data, int16_t len, uint8_t *outCmd)
+E_RESULT FLASH_SAVE GIZ_IsCmdCorrect(uint8_t * data, int16_t len, uint8_t *outCmd)
 {
    return GIZ_MsgDemodulate(data, len, outCmd);
 }
@@ -152,6 +157,26 @@ static E_RESULT FLASH_SAVE GIZ_FillMsgHeader(void * pMsg, uint16_t len, uint8_t 
 
    GIZ_PRINT("header:cmd:0x%x len:0x%x\n", header->cmd, header->len);
    
+   return APP_SUCCESS;
+}
+
+// 填充消息头, 此消息可发往 APP 或 MCU
+static E_RESULT FLASH_SAVE GIZ_FillGeneralMsgHeader(void * pMsg, uint16_t len, uint8_t cmd, uint8_t sn, uint16_t flags)
+{
+   T_MSG_HEADER *header = (T_MSG_HEADER *)pMsg;
+
+   if(NULL == pMsg)
+   {
+      GIZ_PRINT("err %s %d\n", __FILE__, __LINE__);
+	  return APP_FAILED;
+   }
+   header->head = 0xFFFF;
+   header->len = len;
+   header->cmd = cmd;
+   header->sn  = sn;
+   header->flags = flags;
+
+   GIZ_PRINT("header:cmd:0x%x len:0x%x\n", header->cmd, header->len);
    return APP_SUCCESS;
 }
 
@@ -188,8 +213,6 @@ static uint8_t FLASH_SAVE GIZ_GenSerial(void)
 }
 
 
-
-
 #define CMDFN_ConstructGeneralMsg(pTxMsg, T_CMD_TYPE, cmd_val) \
 	{\
 	GIZ_PRINT("sizeof(");\
@@ -200,6 +223,7 @@ static uint8_t FLASH_SAVE GIZ_GenSerial(void)
 	GIZ_MsgModulate(pTxMsg, sizeof(T_CMD_TYPE));\
 	}
 
+
 static uint8_t FLASH_SAVE CMDFN_MakeNothing(void * pMsg)
 {
    return APP_SUCCESS;
@@ -209,7 +233,8 @@ static uint8_t FLASH_SAVE CMDFN_ParseNothing(void *pRxMsg)
    return APP_SUCCESS;
 }
 
-static uint8_t FLASH_SAVE CMDFN_MakeDeviceInfo_Req(void *pTxMsg)
+// WIFI 模块发送设备信息请求命令
+static uint8_t FLASH_SAVE CMDFN_SendDeviceInfo_Req(void)
 {
    uint8_t buf[sizeof(T_DeviceInfo_Req) + 5];
    uint16_t i, len;
@@ -272,7 +297,9 @@ static uint8_t FLASH_SAVE CMDFN_ParseDeviceInfo_Req(void *pRxMsg)
 }
 
 static os_timer_t tDeviceInfoReqManagerTimer;
-static E_BOOL isGetDeviceInfoResp = E_FALSE;
+static E_BOOL isGetDeviceInfoResp = E_FALSE;   // wifi 模块是否已获取MCU的设备信息的响应
+
+// 解析MCU回复的设备信息的响应
 static uint8_t FLASH_SAVE CMDFN_ParseDeviceInfo_Resp(void *pRxMsg)
 {
     GIZ_PRINT("parse DevInfoResp %d ms\n", Sys_GetRunTime());
@@ -285,7 +312,7 @@ static uint8_t FLASH_SAVE CMDFN_ParseDeviceInfo_Resp(void *pRxMsg)
        GIZ_PRINT("err %s %d\n", __FILE__, __LINE__);
 	   return APP_FAILED;
     }
-	isGetDeviceInfoResp = E_TRUE;
+	isGetDeviceInfoResp = E_TRUE;    // 已收到响应
 	os_memset(string, 0, sizeof(string));
 	os_strncpy(string, pCmd->protocol_ver, sizeof(pCmd->protocol_ver));
 	GIZ_PRINT("pro_ver = %s\n", string);
@@ -308,6 +335,7 @@ static uint8_t FLASH_SAVE CMDFN_ParseDeviceInfo_Resp(void *pRxMsg)
 	return APP_SUCCESS;
 }
 
+// WIFI 模块发送设备请求信息的定时器回调
 static void FLASH_SAVE DeviceInfoReqMsgTimer_CallBack(void *arg)
 {
    GIZ_PRINT("DevInfoReqCb %d ms\n", Sys_GetRunTime());
@@ -316,7 +344,7 @@ static void FLASH_SAVE DeviceInfoReqMsgTimer_CallBack(void *arg)
    os_timer_disarm(&tDeviceInfoReqManagerTimer);
    if(E_FALSE == isGetDeviceInfoResp)  // had not get the device info
    {
-      CMDFN_MakeDeviceInfo_Req(NULL);  // send req msg to the device
+      CMDFN_SendDeviceInfo_Req();  // send req msg to the device
       os_timer_setfn(&tDeviceInfoReqManagerTimer, (os_timer_func_t *)DeviceInfoReqMsgTimer_CallBack, NULL);
       os_timer_arm(&tDeviceInfoReqManagerTimer, 1000, 0);   // 1 s timer
       return;
@@ -609,7 +637,7 @@ static uint8_t FLASH_SAVE CMDFN_ParseWifiStatusChangeNotify_Resp(void *pRxMsg)
 }
 
 // WIFI send req msg to outside device for its cur status info 
-uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(void)
+uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(E_RemoteFlags flags)
 {
    uint8_t buf[sizeof(T_ReadDeviceCurStatus_Req) + 5];
    T_ReadDeviceCurStatus_Req * pReqCmd = (T_ReadDeviceCurStatus_Req *)buf;
@@ -617,8 +645,8 @@ uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(void)
 
    GIZ_PRINT("tx ReadDevCurStaReq\n");
    os_memset(buf, 0, sizeof(buf));
-   GIZ_FillMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Req) - MSG_PACKET_HEAD_SIZE,
-   	                    CMD_ReadDeviceCurStatus_Req, GIZ_GenSerial());
+   GIZ_FillGeneralMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Req) - MSG_PACKET_HEAD_SIZE,
+   	                    CMD_ReadDeviceCurStatus_Req, GIZ_GenSerial(), (uint16_t)flags);
    pReqCmd->action = 0x02; 
    GIZ_FillMsgTailer(buf);
    GIZ_MsgModulate(buf, sizeof(T_ReadDeviceCurStatus_Req));
@@ -665,6 +693,7 @@ void FLASH_SAVE DeviceCurBatteryCapacityUpdate(uint32_t batCap)
 
 static void FLASH_SAVE DeviceCurStatusCopy(T_DEVICE_STATUS *descStatus, T_DEVICE_STATUS * srcStatus)
 {
+   #if 0
    descStatus->pm25 = srcStatus->pm25;
    descStatus->forma = srcStatus->forma;
    descStatus->temperatue = srcStatus->temperatue;
@@ -674,6 +703,9 @@ static void FLASH_SAVE DeviceCurStatusCopy(T_DEVICE_STATUS *descStatus, T_DEVICE
    descStatus->hour = srcStatus->hour;
    descStatus->min = srcStatus->min;
    descStatus->sec = srcStatus->sec;
+   #else
+   os_memcpy(descStatus, srcStatus, sizeof(T_DEVICE_STATUS));
+   #endif
 }
 static void FLASH_SAVE DevCurStatusSet(T_DEVICE_STATUS * dev_status)
 {
@@ -688,6 +720,12 @@ static void FLASH_SAVE DevCurStatusSet(T_DEVICE_STATUS * dev_status)
    DeviceCurTempValUpdate(Sensor_GetTemperatureVal());
    DeviceCurHumiValUpdate(Sensor_GetHumidityVal());
    DeviceCurBatteryCapacityUpdate(Sensor_GetBatCapacityVal());
+   tDeviceStatus.airPressure = 80;
+   tDeviceStatus.windSpeed = 15;
+   tDeviceStatus.windDir = 1;
+   tDeviceStatus.rainfall = 130;
+   tDeviceStatus.lightIntensity = 20;
+   tDeviceStatus.ultraviolet = 17;
    DeviceCurStatusCopy(dev_status, &tDeviceStatus);
 }
 static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
@@ -700,11 +738,27 @@ static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
    os_printf("mk DevCurStaResp %d ms\r\n", Sys_GetRunTime());
    os_memset(buf, 0, sizeof(buf));
    GIZ_FillMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Resp) - MSG_PACKET_HEAD_SIZE, CMD_ReadDeviceCurStatus_Resp, pReqCmd->header.sn);
+   pRespCmd->action = 0x03;
    DevCurStatusSet(&pRespCmd->tDevStatus);
    GIZ_FillMsgTailer(buf);
    GIZ_MsgModulate(buf, sizeof(T_ReadDeviceCurStatus_Resp));
    len = os_strlen(buf);
    os_strncpy(&buf[len], "\r\n", 2);
+
+   //#ifdef GIZ_DEBUG_EN
+   {
+       uint16_t i;
+       uint16_t len;
+
+       os_printf("tx msg: ");
+	   len = os_strlen(buf);
+	   for(i = 0; i < len; i++)
+	   {
+	      SerialDrv_PrintHex(buf[i]);
+	   }
+   }
+   //#endif
+   
    GIZ_UartSend(buf); 
    
    return APP_SUCCESS;
@@ -712,6 +766,18 @@ static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
 static uint8_t FLASH_SAVE CMDFN_ParseReadDeviceCurStatus_Req(void * pRxMsg)
 {
    os_printf("parse DevCurStaReq %d ms\r\n", Sys_GetRunTime());
+   os_printf("rx msg:");
+
+   {
+   	   uint16_t i;
+       uint16_t len = os_strlen(pRxMsg);
+	   char * pBuf = (char *)pRxMsg;
+	   
+	   for(i = 0; i < len; i++)
+	   {
+	       SerialDrv_PrintHex(pBuf[i]);
+	   }
+   }
    return CMDFN_MakeReadDeviceCurStatus_Resp(pRxMsg);
 }
 static uint8_t FLASH_SAVE CMDFN_ParseReadDeviceCurStatus_Resp(void *pRxMsg)
@@ -914,8 +980,8 @@ void FLASH_SAVE TestTimerCallBack(void *param)
 void FLASH_SAVE ATCMD_Init(void)
 {
    SerialDrv_Init((ATCMD_RxProcessFunc)ATUART_RxIntServer);
-   ATCMD_DeviceInfoReqTimerManager();  // request device msg
-   HeartTickTimerManager();
+   //ATCMD_DeviceInfoReqTimerManager();  // request device msg
+   //HeartTickTimerManager();
 }
 
 
