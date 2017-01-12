@@ -2,7 +2,13 @@
 #ifndef __GLOBAL_FUNC_H__
 #define  __GLOBAL_FUNC_H__
 
-#include "giz_includes.h"
+//#include "giz_includes.h"
+#include "Arduino.h"
+#include <stdarg.h>
+#include <stdio.h>
+//#include <avr/pgmspace.h>
+#include "string.h"
+#include "GlobalDef.h"
 
 typedef enum
 {

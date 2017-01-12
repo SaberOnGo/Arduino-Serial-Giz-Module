@@ -2,6 +2,9 @@
 
 #include "AtCmd_Drv.h"
 
+// 对传感器需要进行怎样处理
+#define WhatToDoAboutSensors(flags)  (flags & 0xFF00)
+
 static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_t *outCmd)
 {
    uint16_t checkSumLen = 0;    // all msg data except the byte of checksum
@@ -711,6 +714,8 @@ static void FLASH_SAVE DevCurStatusSet(T_DEVICE_STATUS * dev_status)
 {
    uint32_t hour = 0, min = 0, sec = 0;
    E_BOOL result;
+
+   static uint32_t test_count = 0;  // 用于测试
    
    result = Sensor_GetHourMinSec(&hour, &min, &sec);
    if(result == E_TRUE)DeviceCurTimeUpdate(hour, min, sec);
@@ -725,7 +730,7 @@ static void FLASH_SAVE DevCurStatusSet(T_DEVICE_STATUS * dev_status)
    tDeviceStatus.windDir = 1;
    tDeviceStatus.rainfall = 130;
    tDeviceStatus.lightIntensity = 20;
-   tDeviceStatus.ultraviolet = 17;
+   tDeviceStatus.ultraviolet = test_count++;
    DeviceCurStatusCopy(dev_status, &tDeviceStatus);
 }
 static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
@@ -737,7 +742,8 @@ static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
 
    os_printf("mk DevCurStaResp %d ms\r\n", Sys_GetRunTime());
    os_memset(buf, 0, sizeof(buf));
-   GIZ_FillMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Resp) - MSG_PACKET_HEAD_SIZE, CMD_ReadDeviceCurStatus_Resp, pReqCmd->header.sn);
+   GIZ_FillGeneralMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Resp) - MSG_PACKET_HEAD_SIZE,
+   	                            CMD_ReadDeviceCurStatus_Resp, pReqCmd->header.sn, pReqCmd->header.flags);
    pRespCmd->action = 0x03;
    DevCurStatusSet(&pRespCmd->tDevStatus);
    GIZ_FillMsgTailer(buf);
@@ -763,21 +769,54 @@ static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
    
    return APP_SUCCESS;
 }
+
+static uint16_t IsTiminglyRpSensors = 0;  // 是否需要定时上报传感器数据
+	
 static uint8_t FLASH_SAVE CMDFN_ParseReadDeviceCurStatus_Req(void * pRxMsg)
 {
-   os_printf("parse DevCurStaReq %d ms\r\n", Sys_GetRunTime());
-   os_printf("rx msg:");
+   T_ReadDeviceCurStatus_Req * pReqCmd = (T_ReadDeviceCurStatus_Req *)pRxMsg;
+   uint16_t flags = 0;
+   
+   if(NULL == pRxMsg){ INSERT_ERROR_INFO();  return APP_FAILED; }
+   
+   //os_printf("parse DevCurStaReq %d ms\r\n", Sys_GetRunTime());
 
+    os_printf("rx msg:");
    {
    	   uint16_t i;
-       uint16_t len = os_strlen(pRxMsg);
+       uint16_t len = pReqCmd->header.len + MSG_PACKET_HEAD_SIZE;
 	   char * pBuf = (char *)pRxMsg;
 	   
 	   for(i = 0; i < len; i++)
 	   {
 	       SerialDrv_PrintHex(pBuf[i]);
 	   }
+	   os_printf("\n");
    }
+   
+   // 需要 Arduino 定时上报传感器数据
+   //os_printf("flags = %d\n", pReqCmd->header.flags);
+   //INSERT_DEBUG_INFO();
+   flags = pReqCmd->header.flags;
+   //INSERT_DEBUG_INFO();
+   os_printf("flags = %d\n", (uint32_t)flags);
+   //INSERT_DEBUG_INFO();
+   if(FLAGS_TIMING_TO_RP == WhatToDoAboutSensors(flags))
+   {
+      os_printf("set rp sensors\n");
+	  IsTiminglyRpSensors = FLAGS_TIMING_TO_RP;
+
+	  CmdTest_DevCurStatusReportReq_Manager();   // 启动定时上报的定时器
+   }
+   else if(FLAGS_CANCEL_REPORT == WhatToDoAboutSensors(flags))  // 取消定时上报
+   {
+      os_printf("cancel rp sensors\n");
+	  if(IsTiminglyRpSensors)IsTiminglyRpSensors = 0;  // 取消定时上报传感器数据
+	  
+	  CmdTest_StopReportDeviceCurStatusTimer();  // 关闭主动上报的定时器
+   }
+
+   
    return CMDFN_MakeReadDeviceCurStatus_Resp(pRxMsg);
 }
 static uint8_t FLASH_SAVE CMDFN_ParseReadDeviceCurStatus_Resp(void *pRxMsg)
@@ -804,12 +843,28 @@ uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatusReport(void)
 
    GIZ_PRINT("RpDevCurSta tk = %d ms\n", Sys_GetRunTime());
    os_memset(buf, 0, sizeof(buf));
-   GIZ_FillMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Report) - MSG_PACKET_HEAD_SIZE, CMD_ReadDeviceCurStatus_Report, GIZ_GenSerial());
+   GIZ_FillGeneralMsgHeader(buf, sizeof(T_ReadDeviceCurStatus_Report) - MSG_PACKET_HEAD_SIZE, 
+   	                            CMD_ReadDeviceCurStatus_Report, GIZ_GenSerial(), IsTiminglyRpSensors);
    DevCurStatusSet(&pReport->tDevStatus);
    GIZ_FillMsgTailer(buf);
    GIZ_MsgModulate(buf, sizeof(T_ReadDeviceCurStatus_Report));
    len = os_strlen(buf);
    os_strncpy(&buf[len], "\r\n", 2);
+
+   #if 1  // 调试打印
+   {
+       uint16_t i;
+       uint16_t len;
+
+       os_printf("tx msg: ");
+	   len = os_strlen(buf);
+	   for(i = 0; i < len; i++)
+	   {
+	      SerialDrv_PrintHex(buf[i]);
+	   }
+   }
+   #endif
+   
    GIZ_UartSend(buf); 
    
    return APP_SUCCESS;
@@ -949,14 +1004,14 @@ void FLASH_SAVE ATUART_RxIntServer(uint8_t *data, int32_t len)
 {
    uint8_t buff[GIZ_RX_BUF_SIZE];
    uint8_t cmdCode = 0, cmdIndex = 0;
-   if(len > sizeof(buff)){ os_printf("len too long\r\n"); return; };
+   if(len > sizeof(buff)){ INSERT_ERROR_INFO(); return; };
    
    os_memset(buff, 0, sizeof(buff));
    os_strncpy(buff, data, len);
    SerialDrv_SetRxCompleteBool(E_FALSE);
    if(GIZ_IsCmdCorrect(buff, len, &cmdCode) == APP_SUCCESS)
    {
-      os_printf("search cmd success\r\n");
+      os_printf("search OK\r\n");
       for(cmdIndex = 0; cmdIndex < CMD_TABLE_SIZE; cmdIndex++)
       {
          if(cmdCode == tCmdTable[cmdIndex].cmd)break;
@@ -968,7 +1023,7 @@ void FLASH_SAVE ATUART_RxIntServer(uint8_t *data, int32_t len)
 	     tCmdTable[cmdIndex].ParseCmdFunc(buff);  // parse process
 	  }
    }
-   else{  os_printf("search cmd failed\r\n");  }
+   else{  os_printf("search failed\r\n");  }
 }
 
 static os_timer_t tTestTimer;

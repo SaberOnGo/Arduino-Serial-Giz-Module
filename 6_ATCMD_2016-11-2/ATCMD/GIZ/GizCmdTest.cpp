@@ -58,22 +58,29 @@ void FLASH_SAVE CmdTest_SendRestartWifiReq_Manager(void)
 	os_timer_arm(&tRestartWifiReqMsgTimer, 3000, 0); 
 }
 
-static os_timer_t tDevCurStatusReportTimer;
+static os_timer_t tDevCurStatusReportTimer;   // 定时上报传感器数据的定时器
+// 定时上报传感器的定时器的回调函数
 static void FLASH_SAVE DevCurStatusReportTimer_CallBack(void * param)
 {
      os_timer_disarm(&tDevCurStatusReportTimer);
      TEST_DEBUG("report DevCurSta cb tk = %d ms\n", Sys_GetRunTime());
 	 CMDFN_SendReadDeviceCurStatusReport();
 	 //os_timer_setfn(&tDevCurStatusReportTimer, (os_timer_func_t * )DevCurStatusReportTimer_CallBack, NULL);
-	 os_timer_arm(&tDevCurStatusReportTimer, 2000, 0);
+	 os_timer_arm(&tDevCurStatusReportTimer, 1000, 0);
 }
 
 void FLASH_SAVE CmdTest_DevCurStatusReportReq_Manager(void)
 {
     os_timer_disarm(&tDevCurStatusReportTimer);
 	os_timer_setfn(&tDevCurStatusReportTimer, (os_timer_func_t * )DevCurStatusReportTimer_CallBack, NULL);
-	os_timer_arm(&tDevCurStatusReportTimer, 2000, 0);
+	os_timer_arm(&tDevCurStatusReportTimer, 1000, 0);
 }
+
+void FLASH_SAVE CmdTest_StopReportDeviceCurStatusTimer(void)
+{
+    os_timer_disarm(&tDevCurStatusReportTimer);
+}
+
 #else  // wifi module
 static os_timer_t tWifiTimingToCheckStatusTimer;
 //wifi module timing to check its status and notify to outside device
@@ -175,11 +182,11 @@ void FLASH_SAVE GizCmdTestInit(void)
     #if 1
 	if(E_TRUE == Sys_IsBigEndian())
 	{
-	   os_printf("CPU is big endian: MSB in low addr\n");
+	   os_printf("big endian: MSB in low addr\n");
 	}
 	else
 	{
-	   os_printf("CPU is little endian: LSB in low addr\n");
+	   os_printf("little endian: LSB in low addr\n");
 	}
 	#endif
 	

@@ -16,6 +16,7 @@ void FLASH_SAVE GizCmdTestInit(void);
 
 #if (GIZ_PLATFORM == USE_ARDUINO)  // device MCU API
 void FLASH_SAVE CmdTest_DevCurStatusReportReq_Manager(void);
+void FLASH_SAVE CmdTest_StopReportDeviceCurStatusTimer(void);
 void FLASH_SAVE CmdTest_SendRestartWifiReq_Manager(void);
 void FLASH_SAVE CmdTest_SendConfigModeReq_Manager(void);
 #else  // wifi module API

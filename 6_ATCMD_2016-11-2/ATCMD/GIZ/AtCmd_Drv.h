@@ -3,7 +3,7 @@
 #define __ATCMD_DRV_H__
 
 #include "giz_includes.h"
- 
+#include "SensorInterface.h"
 
 
 /************************************ MACRO SWITCH OPTION BEGIN *****************************************/
@@ -24,6 +24,8 @@
 
 #define GIZ_UartSend(str)   at_port_print((const char *)str)   
 
+#define INSERT_ERROR_INFO() os_printf("err, file = %s, line = %d\n", __FILE__, __LINE__);
+#define INSERT_DEBUG_INFO() os_printf("debug, file = %s, line = %d\n", __FILE__, __LINE__);
 /************************************ MACRO SWITCH OPTION END *****************************************/
 
 
@@ -69,6 +71,9 @@ typedef enum
    WIFI_AND_APP_FLAGS  = 0x0001,
 }E_RemoteFlags;
 
+#define FLAGS_TIMING_TO_RP         0x0100   // 高8位, 告知Sensor需要定时上报传感器数据
+#define FLAGS_CANCEL_REPORT        0x0200   // 取消定时上报传感器数据
+
 // action 字段定义
 typedef enum
 {
@@ -78,6 +83,8 @@ typedef enum
 }E_CMD_ACTION;
 
 #pragma pack (1)
+
+//typedef struct struct_device_status T_DEVICE_STATUS;
 
 typedef struct
 {
@@ -159,40 +166,7 @@ typedef struct
    T_MSG_TAILER tailer;
 }T_ReadDeviceCurStatus_Req;   
 
-#if 0
-typedef struct
-{
-    uint32_t hour;
-	uint32_t min;
-	uint32_t sec;
-	uint8_t  sys_status;
-	uint16_t pm25;   // 0 - 9999
-	uint32_t forma;  
-	uint32_t temperatue;
-	uint32_t humiduty;
-	uint32_t batCapacity;  // battery capacity
-}T_DEVICE_STATUS;  // 31 B
-#else
-typedef struct
-{
-    uint32_t hour;
-	uint32_t min;
-	uint32_t sec;
-	uint8_t  sys_status;  // 系统状态
-	uint16_t pm25;        // 0 - 9999, pm25 浓度
-	uint32_t forma;       // 甲醛浓度
-	uint32_t temperatue;  // 温度
-	uint32_t humiduty;    // 湿度, %
-    uint32_t batCapacity;  // battery capacity
-    
-	uint32_t airPressure;   // 气压
-	uint32_t windSpeed;     // 风速
-	uint32_t windDir;        // 风向
-	uint32_t rainfall;       // 降雨量
-	uint32_t lightIntensity;  // 光照强度
-	uint32_t ultraviolet;     // 紫外线强度	
-}T_DEVICE_STATUS;  // 传感器集合
-#endif
+
 
 typedef struct
 {
@@ -251,6 +225,9 @@ void FLASH_SAVE DeviceCurHumiValUpdate(uint32_t humiVal);
 void FLASH_SAVE DeviceCurTempValUpdate(uint32_t tempVal);
 void FLASH_SAVE DevceCurSysStatusUpdate(uint8_t sys_status);
 void FLASH_SAVE DeviceCurTimeUpdate(uint32_t hour, uint32_t min, uint32_t sec);
+
+extern void FLASH_SAVE CmdTest_DevCurStatusReportReq_Manager(void);
+extern void FLASH_SAVE CmdTest_StopReportDeviceCurStatusTimer(void);
 
 #if GIZ_CMD_TEST_EN
 E_BOOL FLASH_SAVE GetRxCfgModeReqFlag(void);

@@ -15,7 +15,7 @@
 #define SERIAL_DEBUG_EN   0
 #define GIZ_DEBUG_EN      0
 #define TIMER_DEBUG_EN    0
-#define TEST_DEBUG_EN     1
+#define TEST_DEBUG_EN     0  // 1
 #define USE_OPTIMIZE_PRINTF 1
 #define ALL_STRING_SAVE_IN_FLASH  1  
 

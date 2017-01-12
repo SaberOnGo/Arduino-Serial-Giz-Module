@@ -15,7 +15,7 @@
 #include <OneWire.h>
 #include "DS18B20_Drv.h"
 #include "WifiInterface.h"
-#include "SensorInterface.h"
+//#include "SensorInterface.h"
 #include "AtCmd_Drv.h"
 #include "GizCmdTest.h"
 
