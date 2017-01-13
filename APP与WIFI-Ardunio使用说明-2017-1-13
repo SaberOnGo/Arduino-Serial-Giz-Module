@@ -1,0 +1,256 @@
+
+流程: APP  ->[1]    ESP8266  ->[2]   Arduino
+      
+      Arduino ->[3] ESP8266  ->[4] APP
+
+
+[1] 
+APP 请求WIFI 当前设备信息: flags = 1, cmd = 0x03
+FF FF 06 CC 03 D9 01 CC 02 E3 0D 0A 
+FFFF06CC03D901CC02E30D0A    // 实际发送报文, APP -> ESP8266
+
+[4]:
+ESP8266 回送给APP的报文:
+FF FF 
+3D CC 
+04 
+D9 
+CC CC 11 CC 
+CC CC CC CC 
+CC CC CC CC 
+CC CC CC CC 
+CC CC CC CC 
+CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 
+CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 29 0D 0A
+
+ESP8266 发给传感器(Arduino)的请求报文: flags = 0, cmd = 0x03: 请求当前设备信息
+FF FF 06 CC 03 01 CC CC 02 EE 0D 0A   // 有空格, 需要去掉
+
+FFFF06CC0301CCCC02EE0D0A   // 实际发送报文, 无空格
+
+Arduino 的应答报文: Arduino -> ESP8266
+
+FF FF  // header(2B)
+3D CC  // len(2B)
+04     //  cmd
+04     //  sn: 返回请求命令的sn
+CC CC  //  flags: 0x0000
+03     // action
+0C CC CC CC  // 0x0000000C   hour = 12
+3B CC CC CC  // min: 59
+3B CC CC CC  // sec: 59
+01           // uint8_t  sys_status;  // 系统状态
+23 62        // PM25(2B)
+FC 08 CC CC  // uint32_t forma;       // 甲醛浓度
+D0 7C CC CC  // uint32_t temperatue;  // 温度
+E8 11 01 CC  // 湿度, %
+06 12 01 CC  //  battery capacity
+CC CC CC CC  // 气压
+CC CC CC CC  // 风速
+CC CC CC CC  // 风向
+CC CC CC CC  // 降雨量
+CC CC CC CC  // 光照强度
+CC CC CC CC  // 紫外线强度	
+B1           // 和校验: 从 header 到校验字段之前的所有数据的相加
+0D 0A
+
+
+报文协议:
+
+/****************************************************************************************************
+机智云接入串口协议
+命令格式类似如下:
+header(2B) = 0xFFFF, len(2B),  cmd(1B), sn(1B), params(x B), checksum(1B)
+1:  header 固定为0xFFFF
+2:  长度len 是指从 cmd开始到整个数据包结束所占用的字节数
+3:  多于一个字节的整型数字以小端字节序编码
+4   消息序号(sn)由发送方给出，接收方响应命令时需把消息序号返回给发送方
+5:  检验和(checksum)的计算方式为把数据包按字节【求和】得出的结果取出最低字节的内容
+6:  所有发送的命令都带有确认，如在200毫秒内没有收到接收方的响应，发送方应重发，最多重发3次
+
+附加约定:  报文的调制与解调:
+7   未调制前的报文成为原报文, 调制后的报文称为新报文, 校验码的值是对旧报文运算的结果
+8   调制: 报文中出现一个字节的值为0xCC, 则填0xDD (包括校验码), 如果为0x00, 则规定填充为0xCC
+9:  解调: 算法一:  报文中出现0xCC, 则恢复为0x00, 如果出现0xDD, 则恢复为0xCC, 此时检查校验码
+                  如果第一种算法中, 校验码对报文校验错误, 则运行算法2:
+                  报文中出现0xCC, 恢复为0x00, 如果出现0xDD, 则不处理, 此时检查校验码
+*****************************************************************************************************/
+
+
+
+以下内容见 AtCmd_Drv.h, AtCmd_Drv.c, 有修改
+调试函数如下(直接移植即可):
+
+#define GIZ_VERSION_STRING_LEN    8     // 设备的相关版本字符串长度
+#define GIZ_MAX_STRING_LEN        32
+#define GIZ_PRODUCT_KEY_STR_LEN   GIZ_MAX_STRING_LEN
+#define MSG_PACKET_HEAD_SIZE      4   // header(2B) + len(2B)
+#define GIZ_CHECKSUM_SIZE         1   // 校验字段所占长度
+
+#define GIZ_HEADER_VAL     0xFF    // 消息头的固定值
+#define GIZ_CODE_1_VAL     0xCC    // 调制值1
+#define GIZ_CODE_2_VAL     0xDD    
+#define GIZ_CODE_3_VAL     0xEE
+
+// 参数: void *pMsg: 报文消息起始指针
+//       int16_t totalLen: 总消息长度, 不包括最后的"\r\n"
+static E_RESULT FLASH_SAVE GIZ_MsgModulate(void *pMsg, int16_t totalLen)
+{
+   uint8_t *data = (uint8_t *)pMsg;
+   uint16_t i;
+
+   for(i = 0; i < totalLen; i++)
+   {
+      if(0x0A == data[i])
+      {
+         data[i] = GIZ_CODE_3_VAL;
+      }
+      if(GIZ_CODE_1_VAL == data[i])
+      {
+         data[i] = GIZ_CODE_2_VAL;
+      }
+	  else if(0x00 == data[i])
+	  {
+	     data[i] = GIZ_CODE_1_VAL;
+	  }
+   }
+
+   return APP_SUCCESS;
+}
+
+// 其中: GIZ_PRINT 为调试打印, 可不实现
+解调函数如下:
+static E_RESULT FLASH_SAVE GIZ_MsgDemodulate(uint8_t * data, int16_t len, uint8_t *outCmd)
+{
+   uint16_t checkSumLen = 0;    // all msg data except the byte of checksum
+   uint16_t validLen = 0;  // valid len = header.len
+   uint16_t cmdLen = 0;    // 命令数据长度, 不包括 "\r\n"
+   uint16_t i;
+   uint8_t xorResult = 0;  //the checksum result
+   T_MSG_HEADER *header = (T_MSG_HEADER *)data;
+ 
+   if(NULL == data)
+   {
+      GIZ_PRINT("err, %s, %d\n", __FILE__, __LINE__);
+	  return APP_FAILED;
+   }
+   
+   *outCmd = CMD_Reserved;
+   if(data[0] == GIZ_HEADER_VAL && data[1] == GIZ_HEADER_VAL)
+   {
+      // demodulate msg len first
+      for(i = 0; i < 4; i++)
+      {
+         if(data[i] == GIZ_CODE_1_VAL)
+         {
+            data[i] = 0x00;   // if the value is 0xCC,then recover to 0x00
+         }
+		 else if(data[i] == GIZ_CODE_2_VAL)
+		 {
+		   data[i] = GIZ_CODE_1_VAL;  // if the value is 0xDD,then recover to 0xCC
+		 }
+		 else if(data[i] == GIZ_CODE_3_VAL)
+		 {
+		    data[i] = 0x0A;
+		 }
+		 xorResult += data[i];
+      }
+	  validLen = header->len;
+	  checkSumLen = validLen + MSG_PACKET_HEAD_SIZE - GIZ_CHECKSUM_SIZE; 
+      cmdLen = validLen + MSG_PACKET_HEAD_SIZE;
+
+      GIZ_PRINT("pklen = %d, ckLen = %d\n", validLen, checkSumLen);
+      //  check checkSumLen is valid?
+      if(checkSumLen > len)
+      {
+          GIZ_PRINT("err ckLen = %d, real len = %d\n", checkSumLen, len);
+		  
+		  return APP_FAILED;
+      }
+	  
+      for(i = 4; i < cmdLen; i++)  // demodulate the left bytes
+      {
+         if(data[i] == GIZ_CODE_1_VAL)
+         {
+            data[i] = 0x00;   // if the value is 0xCC,then recover to 0x00
+         }
+		 else if(data[i] == GIZ_CODE_2_VAL)
+		 {
+		   data[i] = GIZ_CODE_1_VAL;  // if the value is 0xDD,then recover to 0xCC
+		 }
+		 else if(data[i] == GIZ_CODE_3_VAL)
+		 {
+		    data[i] = 0x0A;
+		 }
+		 if(i != checkSumLen)  // 不是校验字段
+		 {
+		 xorResult += data[i];
+		 }
+      }
+
+	  if(len)
+	  {
+	     #if GIZ_DEBUG_EN  
+	     GIZ_PRINT("newXor = 0x%x, oldXor = 0x%x\n", xorResult, data[checkSumLen]);
+		 for(i = 0; i < (checkSumLen + 1); i++)
+		 {
+		  	 GIZ_PRINT("0x%x ", data[i]);
+		 }
+		 GIZ_PRINT("\r\n");
+         #endif
+		
+	     if(data[checkSumLen] == xorResult)  // compare checksum
+	     {
+			 GIZ_PRINT("GIZ: decode ok cmd = 0x%x\n", header->cmd);
+			*outCmd = header->cmd;   // get cmd code
+			
+	        return APP_SUCCESS;
+	     }
+		 else
+		 {
+		    GIZ_PRINT("GIZ: xor error, msg: \n");
+			return APP_FAILED;
+		 }
+	  }
+	  else
+	  {
+	     GIZ_PRINT("GIZ: error, len < 0\n");
+		 return APP_FAILED;
+	  } 
+   }
+   else
+   {
+      GIZ_PRINT("not giz msg\n");
+      return APP_FAILED;
+   }
+   return APP_SUCCESS;
+}
+
+
+一个典型的消息调制流程如下: (注意顺序不可随意颠倒！！！)
+   os_memset(buf, 0, sizeof(buf));   // 1 初始化发送缓冲区
+   GIZ_FillMsgHeader();              // 2 填充消息报文头
+   pRespCmd->action = 0x03;          // 3 填充消息报文体
+   DevCurStatusSet(&pRespCmd->tDevStatus);  // 3 填充消息报文体
+   GIZ_FillMsgTailer(buf);                  // 4 填充消息尾部: 即计算校验码(此处为和校验)
+   GIZ_MsgModulate(buf, sizeof(T_ReadDeviceCurStatus_Resp));  // 5 编码
+   len = os_strlen(buf);
+   os_strncpy(&buf[len], "\r\n", 2);                          // 6 尾部添加 "\r\n", 方便对方识别报文结尾
+   
+   
+   
+  
+ 传感器接口及使用
+ 
+ 1  传感器接口: 在头文件 SensorInterface.h 中
+ 2  使用例子在: SensorApp.c中 有一个获取温度传感器的值并发送到ESP8266, ESP8266 再转发到 APP的例子
+ 
+ 
+ 硬件定义:  Arduino Nano 
+ 
+ 硬件串口: RX, TX
+ 软件模拟串口:  使用了 Nano的 D10 (RX), D11(TX) 管脚,  宏:  SOFT_RX_PIN, SOFT_TX_PIN
+                在文件: Serial_Drv.cpp中定义, 使能/关闭串口 : SOFT_UART_EN
+                用于输出调试信息, 波特率: 4800
+                
+ 温度传感器管脚: D12, 宏: DS18B20_IO_PIN
