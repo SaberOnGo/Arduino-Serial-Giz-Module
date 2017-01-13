@@ -1,6 +1,27 @@
 
+#include "Arduino.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <avr/pgmspace.h>
+#include "string.h"
 
 #include "AtCmd_Drv.h"
+#include "Os_timer.h"
+#include "GlobalFunc.h"
+
+
+#if GIZ_DEBUG_EN
+#define GIZ_PRINT  os_printf
+#else
+#define GIZ_PRINT(...) 
+#endif
+
+#if 1 
+#define GIZ_DEBUG os_printf
+#else
+#define GIZ_DEBUG(...) 
+#endif
+
 
 // 对传感器需要进行怎样处理
 #define WhatToDoAboutSensors(flags)  (flags & 0xFF00)
@@ -660,39 +681,7 @@ uint8_t FLASH_SAVE CMDFN_SendReadDeviceCurStatus_Req(E_RemoteFlags flags)
    return APP_SUCCESS;
 }
 
-static T_DEVICE_STATUS tDeviceStatus;
-void FLASH_SAVE DeviceCurTimeUpdate(uint32_t hour, uint32_t min, uint32_t sec)
-{
-    tDeviceStatus.hour = hour;
-	tDeviceStatus.min = min;
-	tDeviceStatus.sec = sec;	
-}
 
-void FLASH_SAVE DeviceCurSysStatusUpdate(uint8_t sys_status)
-{
-   tDeviceStatus.sys_status = sys_status;
-}
-
-void FLASH_SAVE DeviceCurTempValUpdate(uint32_t tempVal)
-{
-   tDeviceStatus.temperatue = tempVal;
-}
-void FLASH_SAVE DeviceCurHumiValUpdate(uint32_t humiVal)
-{
-   tDeviceStatus.humiduty = humiVal;
-}
-void FLASH_SAVE DeviceCurFormaValUpdate(uint32_t formaVal)
-{
-   tDeviceStatus.forma = formaVal;
-}
-void FLASH_SAVE DeviceCurPM25ValUpdate(uint16_t pm25Val)
-{
-   tDeviceStatus.pm25 = pm25Val;
-}
-void FLASH_SAVE DeviceCurBatteryCapacityUpdate(uint32_t batCap)
-{
-   tDeviceStatus.batCapacity = batCap;
-}
 
 static void FLASH_SAVE DeviceCurStatusCopy(T_DEVICE_STATUS *descStatus, T_DEVICE_STATUS * srcStatus)
 {
@@ -712,26 +701,10 @@ static void FLASH_SAVE DeviceCurStatusCopy(T_DEVICE_STATUS *descStatus, T_DEVICE
 }
 static void FLASH_SAVE DevCurStatusSet(T_DEVICE_STATUS * dev_status)
 {
-   uint32_t hour = 0, min = 0, sec = 0;
-   E_BOOL result;
-
-   static uint32_t test_count = 0;  // 用于测试
+   T_DEVICE_STATUS device;
    
-   result = Sensor_GetHourMinSec(&hour, &min, &sec);
-   if(result == E_TRUE)DeviceCurTimeUpdate(hour, min, sec);
-   DeviceCurSysStatusUpdate(Sensor_GetSysState());
-   DeviceCurPM25ValUpdate(Sensor_GetPM25Val());
-   DeviceCurFormaValUpdate(Sensor_GetFormaldehydeVal());
-   DeviceCurTempValUpdate(Sensor_GetTemperatureVal());
-   DeviceCurHumiValUpdate(Sensor_GetHumidityVal());
-   DeviceCurBatteryCapacityUpdate(Sensor_GetBatCapacityVal());
-   tDeviceStatus.airPressure = 80;
-   tDeviceStatus.windSpeed = 15;
-   tDeviceStatus.windDir = 1;
-   tDeviceStatus.rainfall = 130;
-   tDeviceStatus.lightIntensity = 20;
-   tDeviceStatus.ultraviolet = test_count++;
-   DeviceCurStatusCopy(dev_status, &tDeviceStatus);
+   Sensor_GetDevice(&device);
+   os_memcpy(dev_status, &device, sizeof(T_DEVICE_STATUS));
 }
 static uint8_t FLASH_SAVE CMDFN_MakeReadDeviceCurStatus_Resp(void * pRxMsg)
 {
@@ -913,6 +886,7 @@ uint8_t FLASH_SAVE CMDFN_SendDeviceTimeSet_Req(void)
    uint8_t buf[sizeof(T_DeviceTimeSet_Req) + 5];
    T_DeviceTimeSet_Req *pReqCmd = (T_DeviceTimeSet_Req *)buf;
    T_TimeHSM tTimeHSM;
+   T_TIME time;
    uint16_t len = 0;
    
    GIZ_PRINT("tx timesetreq\n");
@@ -921,7 +895,13 @@ uint8_t FLASH_SAVE CMDFN_SendDeviceTimeSet_Req(void)
 
    pReqCmd->action = 0x01;
    pReqCmd->attr_flags = 0x07;
-   Sensor_GetHourMinSec(&tTimeHSM.hour, &tTimeHSM.min, &tTimeHSM.sec);
+
+   // 获取时分秒
+   Sensor_GetTime(&time);
+   tTimeHSM.hour = time.hour;
+   tTimeHSM.min  = time.min;
+   tTimeHSM.sec  = time.sec;
+   
    pReqCmd->timeSet = tTimeHSM;
    
    GIZ_FillMsgTailer(buf);

@@ -3,13 +3,16 @@
 #define  __SENSOR_INTERFACE_H__
 
 //#include "giz_includes.h"
-#include "Arduino.h"
-#include <stdarg.h>
-#include <stdio.h>
-#include <avr/pgmspace.h>
-#include "string.h"
+//#include "Arduino.h"
+//#include <stdarg.h>
+//#include <stdio.h>
+//#include <avr/pgmspace.h>
+//#include "string.h"
 #include "GlobalDef.h"
-#include "GlobalFunc.h"
+//#include "GlobalFunc.h"
+
+
+#define SENSOR_API_TEST_EN   1    // 传感器接口测试, 仅用来演示怎样使用这些接口, 可屏蔽
 
 #pragma pack (1)
 typedef struct
@@ -55,18 +58,51 @@ typedef struct struct_device_status
 	uint32_t lightIntensity;  // 光照强度
 	uint32_t ultraviolet;     // 紫外线强度	
 }T_DEVICE_STATUS;  // 传感器集合
+
+// 传感器集合
+typedef struct
+{
+    T_TIME time;
+	T_DEVICE_STATUS device;
+}T_SENSOR;
+
 #endif
 
 #pragma upack (1)
 
-
-E_BOOL FLASH_SAVE Sensor_GetHourMinSec(uint32_t * hour, uint32_t * min, uint32_t * sec);
-uint8_t FLASH_SAVE Sensor_GetSysState(void);
+void     FLASH_SAVE Sensor_SetTime(T_TIME *time);
+void     FLASH_SAVE Sensor_GetTime(T_TIME *time);
+void     FLASH_SAVE Sensor_SetSysState(uint8_t sys_state);
+uint8_t  FLASH_SAVE Sensor_GetSysState(void);
+void     FLASH_SAVE Sensor_SetPM25Val(uint16_t newVal);
 uint16_t FLASH_SAVE Sensor_GetPM25Val(void);
-uint32_t FLASH_SAVE Sensor_GetFormaldehydeVal(void);
-uint32_t FLASH_SAVE Sensor_GetTemperatureVal(void);
-uint32_t FLASH_SAVE Sensor_GetHumidityVal(void);
-uint32_t FLASH_SAVE Sensor_GetBatCapacityVal(void);
+void     FLASH_SAVE Sensor_SetFormaldehyde(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetFormaldehyde(void);
+void     FLASH_SAVE Sensor_SetTemperature(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetTemperature(void);
+void     FLASH_SAVE Sensor_SetHumidity(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetHumidity(void);
+void     FLASH_SAVE Sensor_SetBatCapacity(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetBatCapacity(void);
+void     FLASH_SAVE Sensor_SetAirPressure(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetAirPressure(void);
+void     FLASH_SAVE Sensor_SetWinddSpeed(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetWindSpeed(void);
+void     FLASH_SAVE Sensor_SetWindDir(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetWindDir(void);
+void     FLASH_SAVE Sensor_SetRainfall(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetRainfall(void);
+void     FLASH_SAVE Sensor_SetLightIntensity(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetLightIntensity(void);
+void     FLASH_SAVE Sensor_SetUltraviolet(uint32_t newVal);
+uint32_t FLASH_SAVE Sensor_GetUltraviolet(void);
+
+void     FLASH_SAVE Sensor_SetDevice(T_DEVICE_STATUS * device);
+void     FLASH_SAVE Sensor_GetDevice(T_DEVICE_STATUS * device);
+
+void FLASH_SAVE SensorAPI_Init(void);
+void FLASH_SAVE Sensor_TriggerToReport(void);
+
 
 #endif
 

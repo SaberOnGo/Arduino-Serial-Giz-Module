@@ -8,14 +8,15 @@
 #include "string.h"
 #include "GlobalDef.h"
 #include "GlobalFunc.h"
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include "tfp_printf.h"
 #include "Serial_Drv.h"
 #include "Os_timer.h"
-#include <OneWire.h>
-#include "DS18B20_Drv.h"
+//#include <OneWire.h>
+//#include "DS18B20_Drv.h"
 #include "WifiInterface.h"
 //#include "SensorInterface.h"
+//#include "SensorApp.h"
 #include "AtCmd_Drv.h"
 #include "GizCmdTest.h"
 

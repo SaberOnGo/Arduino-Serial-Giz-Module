@@ -2,8 +2,9 @@
 #ifndef __GIZCMDTEST_H__
 #define __GIZCMDTEST_H__
 
-#include "giz_includes.h"
-
+//#include "giz_includes.h"
+#include "GlobalDef.h"
+#include "Serial_Drv.h"
 
 #if TEST_DEBUG_EN
 #define TEST_DEBUG  os_printf

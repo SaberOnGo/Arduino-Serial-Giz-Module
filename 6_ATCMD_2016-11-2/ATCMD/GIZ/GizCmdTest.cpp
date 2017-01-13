@@ -1,6 +1,10 @@
 
+#include "Arduino.h"
+#include "Os_timer.h"
+#include "GlobalFunc.h"
 #include "GizCmdTest.h"
-
+#include "SensorInterface.h"
+#include "AtCmd_Drv.h"
 
 #if GIZ_CMD_TEST_EN
 
@@ -69,6 +73,7 @@ static void FLASH_SAVE DevCurStatusReportTimer_CallBack(void * param)
 	 os_timer_arm(&tDevCurStatusReportTimer, 1000, 0);
 }
 
+// 定时上报传感器的管理者: 启动定时上报流程
 void FLASH_SAVE CmdTest_DevCurStatusReportReq_Manager(void)
 {
     os_timer_disarm(&tDevCurStatusReportTimer);
@@ -167,6 +172,8 @@ void FLASH_SAVE CmdTest_TimeSetReqTimer_Manager(void)
 
 void FLASH_SAVE GizCmdTestInit(void)
 {
+
+	
     #if GIZ_CMD_TEST_EN
 	#if (GIZ_PLATFORM == USE_ARDUINO)
     //CmdTest_SendConfigModeReq_Manager();

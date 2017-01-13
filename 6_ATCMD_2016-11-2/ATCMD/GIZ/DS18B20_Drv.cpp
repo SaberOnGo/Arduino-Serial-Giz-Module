@@ -1,8 +1,19 @@
 
+
+#include "Arduino.h"
+#include "GlobalFunc.h"
+
 #include "DS18B20_Drv.h"
+#include <OneWire.h>
+#include "Os_timer.h"
 
 OneWire  ds(DS18B20_IO_PIN);  // on pin 10 (a 4.7K resistor is necessary)
 
+#ifdef  TEMP_DEBUG_EN
+#define TEMP_DEBUG   os_printf  // to call this functon must init software serial
+#else
+#define TEMP_DEBUG(...) 
+#endif
 
 
 //to get temperature

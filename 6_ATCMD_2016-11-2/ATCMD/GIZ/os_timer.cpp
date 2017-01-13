@@ -1,9 +1,17 @@
 
 #include "Arduino.h"
-#include "Serial_Drv.h"
+
 #include "os_timer.h"
+#include "GlobalFunc.h"
+#include "Serial_Drv.h"
+#include "string.h"
 
 
+#if TIMER_DEBUG_EN
+#define TIMER_DEBUG  os_printf
+#else
+#define TIMER_DEBUG(...)
+#endif
 
 static T_OS_TIMER * head_handle = NULL;
 static uint32_t timer_tick = 0;

@@ -19,11 +19,19 @@
 #include "Arduino.h"
 #include <OneWire.h>
 #include <SoftwareSerial.h>
-#include "giz_includes.h"
+#include "Serial_Drv.h"
+#include "Os_timer.h"
+#include "AtCmd_Drv.h"
+
+#include "GizCmdTest.h"
+#include "SensorApp.h"
+
+// 建议: 不要在这个文件中增加任何代码
+// 传感器数据获取建议在 SensorApp.cpp 中用定时器回调获取
 
 void setup() {
    ATCMD_Init();
-   //DS18B20_Init();
+   SystemInit();
    GizCmdTestInit();
 }
 

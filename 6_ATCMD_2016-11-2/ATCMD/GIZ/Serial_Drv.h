@@ -2,13 +2,21 @@
 #ifndef __SERIAL_DRV_H__
 #define  __SERIAL_DRV_H__
 
-#include "giz_includes.h"
+//#include "giz_includes.h"
+#include "Arduino.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <avr/pgmspace.h>
+#include "string.h"
+#include "GlobalDef.h"
+#include "tfp_printf.h"
 
 
 
 #define SOFT_RX_PIN  10  //  D10, name on hardware board 
 #define SOFT_TX_PIN  11  // D11,
 
+#define SOFT_UART_EN   1   //  软件串口使能, 调试打印, 
 #define SW_PRINTF_EN   0   //1: 使用stdio.h 中的printf;  0: 使用 tfp_printf
 
 

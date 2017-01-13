@@ -1,5 +1,6 @@
 
 #include "Serial_Drv.h"
+#include <SoftwareSerial.h>
 
 
 SoftwareSerial mySerial(SOFT_RX_PIN, SOFT_TX_PIN); // RX, TX
@@ -44,6 +45,8 @@ int fputc(int ch, FILE *f)
 void FLASH_SAVE SerialDrv_Init(ATCMD_RxProcessFunc func)
 {
    func = func;
+
+   #if SOFT_UART_EN
    mySerial.begin(4800);
    //printf_begin();
    
@@ -55,7 +58,7 @@ void FLASH_SAVE SerialDrv_Init(ATCMD_RxProcessFunc func)
   #endif
   
    mySerial.println("Hello, world\r\n");
-   
+   #endif
    
    Serial.begin(115200);
 }

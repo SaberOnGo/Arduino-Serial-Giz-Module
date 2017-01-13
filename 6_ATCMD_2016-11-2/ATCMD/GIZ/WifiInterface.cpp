@@ -1,5 +1,6 @@
 
 #include "WifiInterface.h"
+#include "Arduino.h"
 
 uint8_t wifi_get_opmode(void)
 {

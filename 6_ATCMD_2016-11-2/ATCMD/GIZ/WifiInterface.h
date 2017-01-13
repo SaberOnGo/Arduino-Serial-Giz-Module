@@ -2,7 +2,9 @@
 #ifndef __WIFI_INTERFACE_H__
 #define  __WIFI_INTERFACE_H__
 
-#include "giz_includes.h"
+//#include "giz_includes.h"
+#include <stdint.h>
+#include "GlobalDef.h"
 
 #define NULL_MODE       0x00
 #define STATION_MODE    0x01

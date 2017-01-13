@@ -2,30 +2,25 @@
 #ifndef __ATCMD_DRV_H__
 #define __ATCMD_DRV_H__
 
-#include "giz_includes.h"
-#include "SensorInterface.h"
+//#include "giz_includes.h"
 
+
+
+#include "GlobalDef.h"
+//#include "GlobalFunc.h"
+//#include <SoftwareSerial.h>
+//#include "tfp_printf.h"
+#include "Serial_Drv.h"
+//#include "Os_timer.h"
+
+#include "SensorInterface.h"
 
 /************************************ MACRO SWITCH OPTION BEGIN *****************************************/
 
 
-
-#if GIZ_DEBUG_EN
-#define GIZ_PRINT  os_printf
-#else
-#define GIZ_PRINT(...) 
-#endif
-
-#if 1 
-#define GIZ_DEBUG os_printf
-#else
-#define GIZ_DEBUG(...) 
-#endif
-
 #define GIZ_UartSend(str)   at_port_print((const char *)str)   
 
-#define INSERT_ERROR_INFO() os_printf("err, file = %s, line = %d\n", __FILE__, __LINE__);
-#define INSERT_DEBUG_INFO() os_printf("debug, file = %s, line = %d\n", __FILE__, __LINE__);
+
 /************************************ MACRO SWITCH OPTION END *****************************************/
 
 

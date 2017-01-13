@@ -1,4 +1,10 @@
 
+#include "Arduino.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <avr/pgmspace.h>
+#include "string.h"
+
 #include "GlobalFunc.h"
 
 // get system running time since power on

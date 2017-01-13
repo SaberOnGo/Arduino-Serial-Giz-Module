@@ -26,7 +26,7 @@
 #define CMD_DEVCURSTAREPORT_DEBUG_EN  1   // cmd 0x0d debug
 
 typedef long int32;
-typedef long int32_t;
+//typedef long int32_t;
 typedef unsigned long INT32U;
 typedef signed   long INT32S;
 typedef unsigned char INT8U;
